@@ -1,0 +1,14 @@
+# ⚠️ SÉCURITÉ — Ne jamais commiter les clés API réelles
+config.js
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+*.swp
