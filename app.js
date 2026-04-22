@@ -63,12 +63,37 @@ function getUpcomingEvents(stockId, maxDays = 30) {
   return EVENTS.filter(e => e.stockIds.includes(stockId) && getDaysUntil(e.date) >= 0 && getDaysUntil(e.date) <= maxDays);
 }
 
+// ── FONDAMENTAUX (donn\u00e9es r\u00e9elles 2025) ─────────────
+const FUNDAMENTALS = {
+  ntdoy:   { revenue:'$16.5B', divYield:'2.8%', beta:0.62, employees:'6 700'   },
+  sony:    { revenue:'$88B',   divYield:'0.6%', beta:0.81, employees:'109 000' },
+  msft:    { revenue:'$227B',  divYield:'0.7%', beta:0.90, employees:'221 000' },
+  atvi:    { revenue:'$9.5B',  divYield:'0.6%', beta:0.73, employees:'13 000'  },
+  ea:      { revenue:'$7.5B',  divYield:'0.5%', beta:0.81, employees:'9 900'   },
+  ttwo:    { revenue:'$5.3B',  divYield:'\u2014',    beta:1.34, employees:'11 000'  },
+  ubisoft: { revenue:'\u20ac1.7B',  divYield:'\u2014',    beta:1.52, employees:'17 000'  },
+  rblx:    { revenue:'$3.6B',  divYield:'\u2014',    beta:1.78, employees:'2 400'   },
+  unity:   { revenue:'$2.2B',  divYield:'\u2014',    beta:1.69, employees:'5 400'   },
+  ntes:    { revenue:'$13.4B', divYield:'1.8%', beta:1.02, employees:'36 000'  },
+  se:      { revenue:'$16.8B', divYield:'\u2014',    beta:1.63, employees:'67 300'  },
+  glxyz:   { revenue:'$320M',  divYield:'\u2014',    beta:2.10, employees:'~500'    },
+};
+
+function getRiskScore(stockId) {
+  const b = FUNDAMENTALS[stockId]?.beta ?? 1.0;
+  if (b < 0.7) return { level:1, label:'Faible',     color:'#22c55e', stars:'\u25cf\u25cb\u25cb\u25cb\u25cb' };
+  if (b < 1.0) return { level:2, label:'Mod\u00e9r\u00e9',    color:'#84cc16', stars:'\u25cf\u25cf\u25cb\u25cb\u25cb' };
+  if (b < 1.3) return { level:3, label:'\u00c9lev\u00e9',      color:'#f59e0b', stars:'\u25cf\u25cf\u25cf\u25cb\u25cb' };
+  if (b < 1.7) return { level:4, label:'Tr\u00e8s \u00e9lev\u00e9', color:'#ef4444', stars:'\u25cf\u25cf\u25cf\u25cf\u25cb' };
+  return               { level:5, label:'Extr\u00eame',    color:'#dc2626', stars:'\u25cf\u25cf\u25cf\u25cf\u25cf' };
+}
+
 // ── STATE ──────────────────────────────────────
 let cash = 10000;
-let holdings = {};       // { stockId: { qty, avgCost } }
+let holdings = {};
 let transactions = [];
 let portfolioHistory = [10000];
-let alerts = [];         // [{ id, stockId, stockName, stockEmoji, stockTicker, type, targetEur, triggered, createdAt }]
+let alerts = [];
 let currentStock = null;
 let tradeMode = 'buy';
 let modalChartInst = null;
@@ -133,6 +158,204 @@ function showPage(name) {
   if (name === 'market')      renderMarket();
   if (name === 'alertes')     renderAlerts();
   if (name === 'calendrier')  renderCalendar();
+  if (name === 'analyse')     renderAnalyse();
+}
+
+// ── ANALYSE ────────────────────────────────────
+const COMPARE_COLORS = ['#8b5cf6','#22c55e','#f59e0b','#06b6d4','#f43f5e','#a78bfa'];
+let analyseTab       = 'compare';
+let compareSelected  = new Set(['msft','sony']);
+let comparePeriod    = 90;
+let compareChartInst = null;
+
+function showAnalyseTab(tab) {
+  analyseTab = tab;
+  document.querySelectorAll('.atab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.atab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('atab-' + tab).classList.add('active');
+  if (tab === 'compare') renderComparateur();
+  if (tab === 'whatif')  renderWhatIf();
+  if (tab === 'risk')    renderRiskTable();
+}
+
+function renderAnalyse() {
+  // Stock selector buttons for compare
+  const sel = document.getElementById('compareSelector');
+  if (sel && !sel.hasChildNodes()) {
+    STOCKS.forEach((s, i) => {
+      const col = COMPARE_COLORS[i % COMPARE_COLORS.length];
+      const btn = document.createElement('button');
+      btn.className = 'cmp-btn' + (compareSelected.has(s.id) ? ' active' : '');
+      btn.textContent = s.emoji + ' ' + s.ticker;
+      btn.style.borderColor = compareSelected.has(s.id) ? col : '';
+      btn.style.background  = compareSelected.has(s.id) ? col + '22' : '';
+      btn.dataset.id = s.id;
+      btn.onclick = () => toggleCompare(s.id, btn, col);
+      sel.appendChild(btn);
+    });
+  }
+  // Stock dropdown for what-if
+  const ws = document.getElementById('wiStock');
+  if (ws && !ws.hasChildNodes()) {
+    STOCKS.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.emoji + ' ' + s.name;
+      ws.appendChild(opt);
+    });
+  }
+  renderComparateur();
+}
+
+function toggleCompare(id, btn, col) {
+  if (compareSelected.has(id)) {
+    if (compareSelected.size <= 1) return; // minimum 1
+    compareSelected.delete(id);
+    btn.classList.remove('active');
+    btn.style.borderColor = ''; btn.style.background = '';
+  } else {
+    if (compareSelected.size >= 4) return; // max 4
+    compareSelected.add(id);
+    btn.classList.add('active');
+    btn.style.borderColor = col; btn.style.background = col + '22';
+  }
+  renderComparateur();
+}
+
+function setComparePeriod(days) {
+  comparePeriod = days;
+  document.querySelectorAll('#comparePeriodBar .range-btn').forEach(b =>
+    b.classList.toggle('active', +b.dataset.days === days));
+  renderComparateur();
+}
+
+function renderComparateur() {
+  const canvas = document.getElementById('compareChart');
+  if (!canvas) return;
+  if (compareChartInst) { compareChartInst.destroy(); compareChartInst = null; }
+  const selected = STOCKS.filter(s => compareSelected.has(s.id));
+  // Normaliser l'historique : base 100 au point de depart
+  const datasets = selected.map((s, i) => {
+    const raw  = s.history.slice(-comparePeriod);
+    const base = raw[0] || 1;
+    const data = raw.map(v => +((v / base * 100).toFixed(2)));
+    const col  = COMPARE_COLORS[i % COMPARE_COLORS.length];
+    return { label: s.ticker, data, borderColor: col, backgroundColor: col + '18',
+      borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3 };
+  });
+  const ctx = canvas.getContext('2d');
+  compareChartInst = new Chart(ctx, {
+    type: 'line',
+    data: { labels: datasets[0]?.data.map((_, i) => i) || [], datasets },
+    options: {
+      animation: { duration: 500 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label} ${c.parsed.y.toFixed(1)} (base 100)` } } },
+      scales: {
+        x: { display: false },
+        y: { ticks: { color:'#64748b', callback: v => v + '' }, grid: { color:'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+  // Legende
+  const leg = document.getElementById('compareLegend');
+  if (leg) {
+    leg.innerHTML = selected.map((s, i) => {
+      const raw  = s.history.slice(-comparePeriod);
+      const perf = raw.length > 1 ? ((raw[raw.length-1] / raw[0] - 1) * 100).toFixed(2) : '0.00';
+      const col  = COMPARE_COLORS[i % COMPARE_COLORS.length];
+      const cls  = +perf >= 0 ? 'up' : 'dn';
+      return `<div class="legend-item">
+        <span class="legend-dot" style="background:${col}"></span>
+        <span>${s.emoji} ${s.name}</span>
+        <span class="legend-perf" style="color:${+perf>=0?'var(--green)':'var(--red)'}">
+          ${+perf>=0?'+':''}${perf}%</span>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('compareNote').textContent = 'Valeurs normalis\u00e9es base 100 · Historique simulation';
+}
+
+function renderWhatIf() {
+  // Already rendered via HTML + runWhatIf()
+}
+
+function runWhatIf() {
+  const stockId = document.getElementById('wiStock')?.value;
+  const amount  = parseFloat(document.getElementById('wiAmount')?.value) || 1000;
+  const period  = parseInt(document.getElementById('wiPeriod')?.value) || 90;
+  const stock   = STOCKS.find(s => s.id === stockId);
+  if (!stock) return;
+
+  const hist    = stock.history.slice(-period);
+  const start   = hist[0] || stock.price;
+  const end     = hist[hist.length-1] || stock.price;
+  const pct     = (end - start) / start;
+  const final   = amount * (1 + pct);
+  const gain    = final - amount;
+  const isUp    = gain >= 0;
+  const gainCls = isUp ? 'up' : 'dn';
+
+  // Classement de toutes les actions sur la meme periode
+  const ranking = STOCKS.map(s => {
+    const h = s.history.slice(-period);
+    const p = (h[h.length-1] / h[0] - 1) * 100 || 0;
+    const f = amount * (1 + p/100);
+    return { s, pct:p, final:f };
+  }).sort((a,b) => b.pct - a.pct);
+
+  document.getElementById('wiResult').innerHTML = `
+    <div class="wi-result-card">
+      <div class="wi-metric">
+        <div class="wi-metric-label">Valeur actuelle</div>
+        <div class="wi-metric-val ${gainCls}">${final.toFixed(0)} \u20ac</div>
+      </div>
+      <div class="wi-metric">
+        <div class="wi-metric-label">Gain / Perte</div>
+        <div class="wi-metric-val ${gainCls}">${isUp?'+':''}${gain.toFixed(0)} \u20ac</div>
+      </div>
+      <div class="wi-metric">
+        <div class="wi-metric-label">Performance</div>
+        <div class="wi-metric-val ${gainCls}">${isUp?'+':''}${(pct*100).toFixed(2)} %</div>
+      </div>
+    </div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px">
+      Comparaison de toutes les actions sur la m\u00eame p\u00e9riode (${period}j) avec ${amount} \u20ac :
+    </p>
+    <table class="wi-table">
+      <thead><tr><th>Action</th><th>Valeur finale</th><th>Performance</th></tr></thead>
+      <tbody>
+        ${ranking.map((r, idx) => {
+          const up2 = r.pct >= 0;
+          const medal = idx === 0 ? '\ud83e\udd47' : idx === 1 ? '\ud83e\udd48' : idx === 2 ? '\ud83e\udd49' : '';
+          const isCur = r.s.id === stockId;
+          return `<tr style="${isCur ? 'background:rgba(139,92,246,0.08)' : ''}">
+            <td>${medal} ${r.s.emoji} ${r.s.name}${isCur ? ' <small style="color:var(--accent)">\u2190 s\u00e9lectionn\u00e9e</small>' : ''}</td>
+            <td style="font-family:var(--font-head);font-weight:600">${r.final.toFixed(0)} \u20ac</td>
+            <td style="color:${up2?'var(--green)':'var(--red)'};font-weight:600">${up2?'+':''}${r.pct.toFixed(2)} %</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderRiskTable() {
+  const container = document.getElementById('riskTable');
+  if (!container) return;
+  const sorted = [...STOCKS].sort((a,b) => (FUNDAMENTALS[a.id]?.beta??1) - (FUNDAMENTALS[b.id]?.beta??1));
+  container.innerHTML = `<div class="risk-table-grid">` +
+    sorted.map(s => {
+      const f = FUNDAMENTALS[s.id] || {};
+      const r = getRiskScore(s.id);
+      return `<div class="risk-row">
+        <div class="risk-row-logo" style="background:${s.color}22;color:${s.color}">${s.emoji}</div>
+        <div><div class="risk-row-name">${s.name}</div><div style="font-size:.75rem;color:var(--muted)">${s.ticker}</div></div>
+        <span class="risk-row-beta">β ${f.beta ?? '—'}</span>
+        <span class="risk-badge" style="color:${r.color}">${r.stars} ${r.label}</span>
+        <span class="risk-row-div">${f.divYield ?? '—'} div.</span>
+        <span class="risk-row-rev">${f.revenue ?? '—'}</span>
+      </div>`;
+    }).join('') + `</div>`;
 }
 
 // ── CALENDRIER ──────────────────────────────────────
@@ -256,6 +479,14 @@ function renderMarket() {
           })()}
         </div>
         <button class="btn-trade" onclick="openModal('${s.id}')">Investir</button>
+      </div>
+      <div class="card-risk-bar">
+        ${(() => {
+          const r = getRiskScore(s.id);
+          const f = FUNDAMENTALS[s.id];
+          return `<span class="risk-mini" style="color:${r.color}">${r.stars} ${r.label}</span>
+                  <span class="card-beta">β ${f?.beta ?? '—'}</span>`;
+        })()}
       </div>`;
     grid.appendChild(card);
     // Draw sparkline
@@ -333,9 +564,26 @@ function openModal(id) {
   const hi = Math.max(...s.history); const lo = Math.min(...s.history);
   document.getElementById('mOpen').textContent = fmt(s.history[0]);
   document.getElementById('mHigh').textContent = fmt(hi);
-  document.getElementById('mLow').textContent = fmt(lo);
-  document.getElementById('mCap').textContent = s.cap;
-  document.getElementById('mPe').textContent = s.pe ? s.pe + 'x' : 'N/A';
+  document.getElementById('mLow').textContent  = fmt(lo);
+  document.getElementById('mCap').textContent  = s.cap;
+  document.getElementById('mPe').textContent   = s.pe ? s.pe + 'x' : 'N/A';
+
+  // Fondamentaux
+  const f = FUNDAMENTALS[s.id] || {};
+  const r = getRiskScore(s.id);
+  const funBox = document.getElementById('modalFundamentals');
+  if (funBox) {
+    funBox.innerHTML = `
+      <div class="fund-item"><span>CA annuel</span><strong>${f.revenue ?? '—'}</strong></div>
+      <div class="fund-item"><span>Dividende</span><strong>${f.divYield ?? '—'}</strong></div>
+      <div class="fund-item"><span>B\u00eata</span><strong>${f.beta ?? '—'}</strong></div>
+      <div class="fund-item"><span>Employ\u00e9s</span><strong>${f.employees ?? '—'}</strong></div>
+      <div class="fund-item fund-risk">
+        <span>Risque</span>
+        <strong style="color:${r.color}">${r.stars} ${r.label}</strong>
+      </div>`;
+  }
+
   document.getElementById('tradeQty').value = 1;
   setTradeMode('buy');
   updateTradeTotal();
@@ -509,24 +757,95 @@ function renderPortfolio() {
   // Holdings list
   const list = document.getElementById('holdingsList');
   const entries = Object.entries(holdings);
+  const hasSect = document.getElementById('sectorSection');
+  const hasPerf = document.getElementById('perfSummary');
+
   if (entries.length === 0) {
     list.innerHTML = `<div class="empty-state"><span class="empty-icon">📊</span><p>Vous n'avez aucune position ouverte.<br>Achetez des actions depuis le marché !</p></div>`;
+    if (hasSect) hasSect.style.display = 'none';
+    if (hasPerf) hasPerf.style.display = 'none';
   } else {
     list.innerHTML = entries.map(([id, h]) => {
       const s = STOCKS.find(x => x.id === id);
       if (!s) return '';
-      const curVal = s.price * h.qty;
+      const curEur  = s.price * eurRate;
+      const curVal  = curEur * h.qty;
       const costVal = h.avgCost * h.qty;
-      const rowPnl = curVal - costVal;
-      const rowPct = ((curVal - costVal) / costVal) * 100;
+      const rowPnl  = curVal - costVal;
+      const rowPct  = ((curVal - costVal) / costVal) * 100;
+      // Target / stop badges
+      const tgt = h.target   ? `<span class="target-badge target">🎯 Objectif ${h.target.toFixed(2)}€</span>` : '';
+      const stp = h.stopLoss ? `<span class="target-badge stop">️⚠ Stop ${h.stopLoss.toFixed(2)}€</span>` : '';
       return `<div class="holding-row">
         <div class="holding-logo" style="background:${s.color}22;color:${s.color}">${s.emoji}</div>
-        <div><div class="holding-name">${s.name}</div><div class="holding-qty">${h.qty} action(s) · moy. ${fmt(h.avgCost)}</div></div>
-        <div class="holding-value">${fmt(curVal)}</div>
-        <div class="holding-pnl ${rowPnl>=0?'up':'dn'}">${rowPnl>=0?'+':''}${fmt(rowPnl)}<br><small>${pct(rowPct)}</small></div>
+        <div>
+          <div class="holding-name">${s.name}</div>
+          <div class="holding-qty">${h.qty} action(s) · moy. ${fmt(h.avgCost / eurRate)}</div>
+          <div style="display:flex;gap:6px;margin-top:4px">${tgt}${stp}</div>
+        </div>
+        <div class="holding-value">${fmt(curVal / eurRate)}</div>
+        <div class="holding-pnl ${rowPnl>=0?'up':'dn'}">${rowPnl>=0?'+':''}${fmt(rowPnl / eurRate)}<br><small>${pct(rowPct)}</small></div>
         <button class="btn-sell" onclick="quickSell('${id}')">Vendre</button>
+        <div class="holding-targets" style="grid-column:1/-1">
+          <div class="target-input-wrap">
+            <span class="target-label">🎯 Objectif :</span>
+            <input class="target-inp" id="tgt-${id}" type="number" step="0.01" placeholder="—" value="${h.target || ''}" />
+          </div>
+          <div class="target-input-wrap">
+            <span class="target-label">⚠️ Stop-loss :</span>
+            <input class="target-inp" id="stp-${id}" type="number" step="0.01" placeholder="—" value="${h.stopLoss || ''}" />
+          </div>
+          <button class="btn-target-save" onclick="saveTargets('${id}')">Enregistrer</button>
+          <small style="color:var(--muted);font-size:.7rem">Cours actuel : ${curEur.toFixed(2)}€</small>
+        </div>
       </div>`;
     }).join('');
+
+    // Performance summary
+    if (hasPerf) {
+      hasPerf.style.display = 'grid';
+      let best = null, worst = null, totalCost = 0, totalVal = 0, wins = 0;
+      entries.forEach(([id, h]) => {
+        const s = STOCKS.find(x => x.id === id);
+        if (!s) return;
+        const curVal  = s.price * eurRate * h.qty;
+        const costVal = h.avgCost * h.qty;
+        const p = ((curVal - costVal) / costVal) * 100;
+        totalCost += costVal; totalVal += curVal;
+        if (p >= 0) wins++;
+        if (!best  || p > best.p)  best  = { s, p };
+        if (!worst || p < worst.p) worst = { s, p };
+      });
+      const totalPnl = totalVal - totalCost;
+      const winRate  = Math.round(wins / entries.length * 100);
+      hasPerf.innerHTML = `
+        <div class="perf-card">
+          <div class="perf-card-label">Meilleure position</div>
+          <div class="perf-card-val" style="color:var(--green)">${best?.s.emoji} ${best?.s.ticker}</div>
+          <div class="perf-card-sub">${best ? (best.p>0?'+':'') + best.p.toFixed(2) + '%' : '—'}</div>
+        </div>
+        <div class="perf-card">
+          <div class="perf-card-label">Pire position</div>
+          <div class="perf-card-val" style="color:var(--red)">${worst?.s.emoji} ${worst?.s.ticker}</div>
+          <div class="perf-card-sub">${worst ? (worst.p>0?'+':'') + worst.p.toFixed(2) + '%' : '—'}</div>
+        </div>
+        <div class="perf-card">
+          <div class="perf-card-label">P&amp;L total</div>
+          <div class="perf-card-val" style="color:${totalPnl>=0?'var(--green)':'var(--red)'}">${totalPnl>=0?'+':''}${fmt(totalPnl / eurRate)}</div>
+          <div class="perf-card-sub">${entries.length} position(s)</div>
+        </div>
+        <div class="perf-card">
+          <div class="perf-card-label">Win rate</div>
+          <div class="perf-card-val">${winRate}%</div>
+          <div class="perf-card-sub">${wins}/${entries.length} en positif</div>
+        </div>`;
+    }
+
+    // Sector donut
+    if (hasSect) {
+      hasSect.style.display = 'grid';
+      renderSectorDonut(entries);
+    }
   }
 
   // Portfolio chart
@@ -549,6 +868,101 @@ function quickSell(id) {
   openModal(id);
   setTimeout(() => setTradeMode('sell'), 100);
 }
+
+// ── PHASE 4 HELPERS ────────────────────────────
+const SECTOR_COLORS = ['#8b5cf6','#22c55e','#f59e0b','#06b6d4','#f43f5e','#a78bfa','#34d399'];
+const SECTOR_NAMES  = { console:'Console', publisher:'\u00c9diteur', mobile:'Mobile', esports:'Esports', cloud:'Cloud', platform:'Plateforme' };
+let sectorDonutInst = null;
+
+function saveTargets(id) {
+  const tgt = parseFloat(document.getElementById('tgt-'+id)?.value);
+  const stp = parseFloat(document.getElementById('stp-'+id)?.value);
+  if (!holdings[id]) return;
+  holdings[id].target   = isNaN(tgt) ? null : tgt;
+  holdings[id].stopLoss = isNaN(stp) ? null : stp;
+  saveState();
+  showToast('\ud83c\udfaf Objectifs enregistr\u00e9s', 'success');
+  renderPortfolio();
+}
+
+function checkTargetsStopLoss() {
+  Object.entries(holdings).forEach(([id, h]) => {
+    const s = STOCKS.find(x => x.id === id);
+    if (!s) return;
+    const cur = s.price * eurRate;
+    if (h.target   && cur >= h.target)   { notifyTargetHit(s, cur, 'target');   h.target   = null; saveState(); }
+    if (h.stopLoss && cur <= h.stopLoss)  { notifyTargetHit(s, cur, 'stopLoss'); h.stopLoss = null; saveState(); }
+  });
+}
+
+function notifyTargetHit(s, curEur, type) {
+  const msg = type === 'target'
+    ? `\ud83c\udfaf ${s.ticker} a atteint votre objectif ! Cours : ${curEur.toFixed(2)}\u20ac`
+    : `\u26a0\ufe0f ${s.ticker} a touch\u00e9 votre stop-loss ! Cours : ${curEur.toFixed(2)}\u20ac`;
+  showToast(msg, type === 'target' ? 'success' : 'error');
+  if (Notification.permission === 'granted') {
+    new Notification(`GameStock \u2014 ${s.emoji} ${s.ticker}`, { body: msg });
+  }
+}
+
+function renderSectorDonut(entries) {
+  const sectorMap = {};
+  entries.forEach(([id, h]) => {
+    const s = STOCKS.find(x => x.id === id);
+    if (!s) return;
+    const cat = s.cat || 'other';
+    const val = s.price * eurRate * h.qty;
+    sectorMap[cat] = (sectorMap[cat] || 0) + val;
+  });
+  const labels = Object.keys(sectorMap).map(k => SECTOR_NAMES[k] || k);
+  const data   = Object.values(sectorMap);
+  const total  = data.reduce((a,b) => a+b, 0);
+  const colors = SECTOR_COLORS.slice(0, data.length);
+
+  if (sectorDonutInst) { sectorDonutInst.destroy(); sectorDonutInst = null; }
+  const ctx = document.getElementById('sectorDonut').getContext('2d');
+  sectorDonutInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: 'var(--bg-base)', borderWidth: 3 }] },
+    options: {
+      cutout: '65%', animation: { duration: 600 },
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: c => ` ${c.label} : ${fmt(c.parsed / eurRate)} (${(c.parsed/total*100).toFixed(1)}%)` }
+      }}
+    }
+  });
+
+  const leg = document.getElementById('sectorLegend');
+  if (leg) {
+    leg.innerHTML = Object.entries(sectorMap).map(([cat, val], i) => `
+      <div class="sector-legend-item">
+        <div class="sector-legend-left">
+          <span class="sector-dot" style="background:${SECTOR_COLORS[i]}"></span>
+          <span>${SECTOR_NAMES[cat] || cat}</span>
+        </div>
+        <span class="sector-pct">${(val/total*100).toFixed(1)}%</span>
+      </div>`).join('');
+  }
+}
+
+function exportCSV() {
+  if (transactions.length === 0) { showToast('Aucune transaction \u00e0 exporter', 'error'); return; }
+  const header = 'Date,Type,Action,Ticker,Quantit\u00e9,Prix unitaire (\u20ac),Total (\u20ac)';
+  const rows = transactions.map(tx => {
+    const d = new Date(tx.date).toLocaleDateString('fr-BE');
+    const price = tx.price * eurRate;
+    const total = price * tx.qty;
+    return `${d},${tx.type.toUpperCase()},${tx.stock.name},${tx.stock.ticker},${tx.qty},${price.toFixed(2)},${total.toFixed(2)}`;
+  });
+  const csv  = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `gamestock_transactions_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('\ud83d\udce5 Export CSV t\u00e9l\u00e9charg\u00e9 !', 'success');
+}
+
 
 function renderHistory() {
   const list = document.getElementById('transactionsList');
@@ -854,11 +1268,13 @@ async function refreshLoop() {
 
   updateSourceBar();
   const activePage = document.querySelector('.page.active');
-  if (activePage?.id === 'page-market') renderMarket();
-  if (activePage?.id === 'page-alertes') renderAlerts();
+  if (activePage?.id === 'page-market')    renderMarket();
+  if (activePage?.id === 'page-alertes')   renderAlerts();
+  if (activePage?.id === 'page-portfolio') renderPortfolio();
   updateCashDisplay();
   if (Object.keys(holdings).length > 0) trackPortfolioHistory();
   checkAlerts();
+  checkTargetsStopLoss();
 }
 
 // ── INIT ──────────────────────────────────────

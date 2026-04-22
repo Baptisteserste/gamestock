@@ -25,6 +25,7 @@
         <button class="nav-btn" data-page="history" onclick="showPage('history')">Historique</button>
         <button class="nav-btn" data-page="alertes" onclick="showPage('alertes')">🔔 Alertes <span class="nav-badge" id="alertBadge">0</span></button>
         <button class="nav-btn" data-page="calendrier" onclick="showPage('calendrier')">📅 Calendrier</button>
+        <button class="nav-btn" data-page="analyse" onclick="showPage('analyse')">📊 Analyse</button>
         <button class="nav-btn" data-page="news" onclick="showPage('news')">Actualités</button>
       </nav>
       <div class="header-wallet">
@@ -95,7 +96,8 @@
           </div>
           <div class="portfolio-actions">
             <span class="save-indicator" id="saveIndicator">✓ Sauvegardé</span>
-            <button class="btn-reset" onclick="resetPortfolio()">&#x21BA; Réinitialiser</button>
+            <button class="btn-export" onclick="exportCSV()">📥 Exporter CSV</button>
+            <button class="btn-reset" onclick="resetPortfolio()">↺ Réinitialiser</button>
           </div>
         </div>
       </div>
@@ -120,7 +122,19 @@
         </div>
       </div>
 
-      <!-- Chart canvas -->
+      <!-- Rapport de performance -->
+      <div id="perfSummary" class="perf-summary" style="display:none"></div>
+
+      <!-- Donut sectoriel -->
+      <div class="sector-row" id="sectorSection" style="display:none">
+        <div class="sector-chart-wrap">
+          <h2 class="section-title">Répartition sectorielle</h2>
+          <canvas id="sectorDonut" height="180"></canvas>
+        </div>
+        <div id="sectorLegend" class="sector-legend"></div>
+      </div>
+
+      <!-- Graphique évolution -->
       <div class="chart-wrapper">
         <h2 class="section-title">Évolution du portfolio</h2>
         <canvas id="portfolioChart" height="120"></canvas>
@@ -147,6 +161,9 @@
           <span class="empty-icon">📋</span>
           <p>Aucune transaction pour le moment.</p>
         </div>
+      </div>
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn-export" onclick="exportCSV()" id="btnExportHistory" style="display:none">📥 Télécharger l'historique CSV</button>
       </div>
     </section>
 
@@ -180,6 +197,56 @@
           <span class="empty-icon">🔔</span>
           <p>Aucune alerte définie.<br>Ouvrez une action et créez votre première alerte de prix.</p>
         </div>
+      </div>
+    </section>
+
+    <!-- ===================== PAGE ANALYSE ===================== -->
+    <section class="page" id="page-analyse">
+      <div class="page-header">
+        <h1>📊 Analyse <span class="gradient-text">Avancée</span></h1>
+        <p class="subtitle">Comparez les performances · Simulez vos investissements · Évaluez le risque</p>
+      </div>
+      <div class="analyse-tabs">
+        <button class="atab active" data-tab="compare" onclick="showAnalyseTab('compare')">📈 Comparateur</button>
+        <button class="atab" data-tab="whatif" onclick="showAnalyseTab('whatif')">💡 Simulateur</button>
+        <button class="atab" data-tab="risk" onclick="showAnalyseTab('risk')">🛡️ Risque</button>
+      </div>
+      <!-- Comparateur -->
+      <div id="atab-compare" class="atab-content active">
+        <div class="compare-selector" id="compareSelector"></div>
+        <div class="compare-period" id="comparePeriodBar">
+          <button class="range-btn active" data-days="30" onclick="setComparePeriod(30)">1M</button>
+          <button class="range-btn" data-days="90" onclick="setComparePeriod(90)">3M</button>
+          <button class="range-btn" data-days="180" onclick="setComparePeriod(180)">6M</button>
+          <button class="range-btn" data-days="365" onclick="setComparePeriod(365)">1A</button>
+          <span class="compare-note" id="compareNote"></span>
+        </div>
+        <div class="compare-chart-wrap"><canvas id="compareChart" height="220"></canvas></div>
+        <div id="compareLegend" class="compare-legend"></div>
+      </div>
+      <!-- Simulateur -->
+      <div id="atab-whatif" class="atab-content">
+        <div class="whatif-form">
+          <div class="whatif-title">💡 Si j'avais investi...</div>
+          <div class="whatif-row">
+            <div class="wi-group"><label>Montant (€)</label><input type="number" id="wiAmount" value="1000" min="1" step="100" class="wi-input"></div>
+            <div class="wi-group"><label>Action</label><select id="wiStock" class="wi-select"></select></div>
+            <div class="wi-group"><label>Période</label>
+              <select id="wiPeriod" class="wi-select">
+                <option value="30">1 mois</option>
+                <option value="90" selected>3 mois</option>
+                <option value="180">6 mois</option>
+                <option value="365">1 an</option>
+              </select>
+            </div>
+            <button class="btn-simulate" onclick="runWhatIf()">Simuler →</button>
+          </div>
+        </div>
+        <div id="wiResult"></div>
+      </div>
+      <!-- Risque -->
+      <div id="atab-risk" class="atab-content">
+        <div id="riskTable"></div>
       </div>
     </section>
 
@@ -230,6 +297,7 @@
         <div class="modal-stat"><span>Cap. Marché</span><span id="mCap">—</span></div>
         <div class="modal-stat"><span>P/E Ratio</span><span id="mPe">—</span></div>
       </div>
+      <div class="modal-fundamentals" id="modalFundamentals"></div>
 
       <!-- Formulaire d'alerte -->
       <div class="alert-form-section">
