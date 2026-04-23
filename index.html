@@ -253,8 +253,17 @@
     <!-- ===================== PAGE ACTUALITÉS ===================== -->
     <section class="page" id="page-news">
       <div class="page-header">
-        <h1>Actualités <span class="gradient-text">Gaming</span></h1>
-        <p class="subtitle">Les dernières nouvelles du secteur influençant les marchés</p>
+        <div class="page-header-row">
+          <div>
+            <h1>Actualités <span class="gradient-text">Gaming</span></h1>
+            <p class="subtitle">Flux en direct · Analyse de sentiment · Impact sur vos positions</p>
+          </div>
+          <button class="btn-export" onclick="NEWS_CACHE.data=null;NEWS_CACHE.ts=0;renderNews()">🔄 Rafraîchir</button>
+        </div>
+      </div>
+      <div class="news-filters">
+        <button class="news-filter-btn active" data-f="all" onclick="filterNews('all')">📰 Toutes les news</button>
+        <button class="news-filter-btn" data-f="portfolio" onclick="filterNews('portfolio')">📊 Mes actions</button>
       </div>
       <div class="news-grid" id="newsGrid"></div>
     </section>

@@ -983,19 +983,137 @@ function renderHistory() {
   }).join('');
 }
 
-function renderNews() {
-  const grid = document.getElementById('newsGrid');
-  grid.innerHTML = NEWS.map(n => `
-    <div class="news-card">
-      <div class="news-img">${n.emoji}</div>
-      <div class="news-body">
-        <span class="news-tag">${n.tag}</span>
-        <div class="news-title">${n.title}</div>
-        <div class="news-meta">${n.date} · ${n.tickers.join(', ')}</div>
-        <span class="news-impact ${n.impact}">${n.impact==='pos'?'↑ Impact positif':n.impact==='neg'?'↓ Impact négatif':'→ Neutre'}</span>
-      </div>
-    </div>`).join('');
+// ── PHASE 5 — ACTUALITÉS & IA ─────────────────
+const STOCK_KEYWORDS = {
+  ntdoy:   ['nintendo','switch 2','mario','zelda','pokemon','kirby','donkey kong'],
+  sony:    ['sony','playstation','ps5','ps4','state of play','insomniac','naughty dog'],
+  msft:    ['microsoft','xbox','game pass','gamepass','activision','bethesda'],
+  atvi:    ['activision','blizzard','call of duty','warcraft','overwatch','diablo'],
+  ea:      ['electronic arts',' ea ','ea sports','ea fc','fifa','madden','the sims','apex legends'],
+  ttwo:    ['take-two','rockstar','gta','grand theft auto','2k games','nba 2k','borderlands'],
+  ubisoft: ['ubisoft',"assassin's creed",'far cry','rainbow six','star wars outlaws','skull and bones'],
+  rblx:    ['roblox'],
+  unity:   ['unity engine','unity technologies'],
+  ntes:    ['netease','fantasy westward'],
+  se:      ['sea limited','garena','free fire','shopee'],
+  glxyz:   ['esports championship','esports tournament'],
+};
+const POS_WORDS = ['record','profit','growth','surge','beats','launch','success','revenue',
+  'billion','million','milestone','partnership','acquisition','strong','rises','gain','hit','best'];
+const NEG_WORDS = ['delay','layoff','layoffs','loss','lawsuit','cancel','disappointing',
+  'disappoints','miss','decline','fall','drop','concern','warning','slump','cuts','closure','struggling'];
+
+function scoreSentiment(text) {
+  const t = text.toLowerCase();
+  let s = 0;
+  POS_WORDS.forEach(w => { if (t.includes(w)) s++; });
+  NEG_WORDS.forEach(w => { if (t.includes(w)) s--; });
+  return Math.max(-3, Math.min(3, s));
 }
+function findRelatedStocks(text) {
+  const t = text.toLowerCase();
+  return Object.entries(STOCK_KEYWORDS)
+    .filter(([, kws]) => kws.some(k => t.includes(k)))
+    .map(([id]) => id);
+}
+function impactLabel(score) {
+  if (score >= 2)  return { cls:'pos', text:'\u2197 Fort impact positif' };
+  if (score === 1) return { cls:'pos', text:'\u2197 Impact positif' };
+  if (score === -1)return { cls:'neg', text:'\u2198 Impact n\u00e9gatif' };
+  if (score <= -2) return { cls:'neg', text:'\u2198 Fort impact n\u00e9gatif' };
+  return               { cls:'neu', text:'\u2192 Neutre' };
+}
+
+let newsFilter = 'all';
+const NEWS_EMOJIS = ['\ud83c\udfae','\ud83d\udcf1','\ud83d\udd79\ufe0f','\ud83c\udfc6','\ud83d\udcbb','\ud83c\udfc3','\ud83c\udf1f'];
+
+function filterNews(f) {
+  newsFilter = f;
+  document.querySelectorAll('.news-filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.f === f));
+  renderNews();
+}
+
+async function renderNews() {
+  const grid = document.getElementById('newsGrid');
+  if (!grid) return;
+
+  // Loading state
+  grid.innerHTML = `<div class="news-loading">
+    <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>
+    <span style="margin-left:8px;color:var(--muted);font-size:.85rem">Chargement des actualit\u00e9s...</span>
+  </div>`;
+
+  let articles = [];
+  try {
+    const raw = await fetchGamingNews(10);
+    if (raw && raw.length > 0) {
+      articles = raw.map(a => ({
+        ...a,
+        score:  scoreSentiment(a.title + ' ' + a.desc),
+        stocks: findRelatedStocks(a.title + ' ' + a.desc),
+      }));
+    }
+  } catch (e) { /* silently fall through to static */ }
+
+  // Fallback to static NEWS array
+  if (articles.length === 0) {
+    articles = NEWS.map(n => ({
+      title: n.title, desc: '', source: n.tag, link: '#',
+      pubDate: new Date().toISOString(), thumb: null,
+      score:  n.impact === 'pos' ? 1 : n.impact === 'neg' ? -1 : 0,
+      stocks: n.tickers.map(t => STOCKS.find(s => s.ticker === t)?.id).filter(Boolean),
+    }));
+  }
+
+  // Filter by portfolio if requested
+  if (newsFilter === 'portfolio') {
+    const held = Object.keys(holdings);
+    articles = articles.filter(a => a.stocks.some(id => held.includes(id)));
+    if (articles.length === 0) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <span class="empty-icon">\ud83d\udcf0</span>
+        <p>Aucune actualit\u00e9 trouv\u00e9e pour vos actions d\u00e9tenues.<br>
+        <small>Essayez de rafra\u00eechir ou r\u00e9duisez le filtre.</small></p></div>`;
+      return;
+    }
+  }
+
+  const held = Object.keys(holdings);
+  grid.innerHTML = articles.slice(0, 24).map((a, idx) => {
+    const imp  = impactLabel(a.score);
+    const tags = a.stocks.map(id => {
+      const s = STOCKS.find(x => x.id === id);
+      return s ? `<span class="news-stock-tag" onclick="event.preventDefault();openModal('${s.id}')">${s.emoji} ${s.ticker}</span>` : '';
+    }).join('');
+    const inPort = a.stocks.some(id => held.includes(id));
+    const portBadge = inPort ? `<span class="news-portfolio-badge">\ud83d\udcca Mon portfolio</span>` : '';
+    const dAgo = Math.max(0, Math.round((Date.now() - new Date(a.pubDate)) / 86400000));
+    const dateStr = dAgo === 0 ? "Aujourd'hui" : dAgo === 1 ? 'Hier' : `Il y a ${dAgo}j`;
+    const fallbackEmoji = NEWS_EMOJIS[idx % NEWS_EMOJIS.length];
+    const imgHtml = a.thumb
+      ? `<img src="${a.thumb}" alt="" class="news-img news-img-real" loading="lazy" onerror="this.outerHTML='<div class=\\"news-img\\">${fallbackEmoji}</div>'">`
+      : `<div class="news-img">${fallbackEmoji}</div>`;
+
+    return `<a class="news-card" href="${a.link}" target="_blank" rel="noopener noreferrer">
+      ${imgHtml}
+      <div class="news-body">
+        <div class="news-card-top">
+          <span class="news-source-badge">${a.source}</span>
+          ${portBadge}
+        </div>
+        <div class="news-title">${a.title}</div>
+        ${a.desc ? `<div class="news-desc">${a.desc}</div>` : ''}
+        <div class="news-meta">${dateStr}</div>
+        <div class="news-card-footer">
+          <span class="news-impact ${imp.cls}">${imp.text}</span>
+          <div class="news-stock-tags">${tags}</div>
+        </div>
+      </div>
+    </a>`;
+  }).join('');
+}
+
 
 // ── UTILS ─────────────────────────────────────
 function updateCashDisplay() {

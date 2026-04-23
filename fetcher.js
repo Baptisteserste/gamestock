@@ -280,3 +280,59 @@ async function fetchStockHistory(stockId, days = 90) {
 
   return null; // pas de données réelles → app.js utilisera l'historique simulé
 }
+
+// ── NEWS GAMING (RSS via rss2json.com) ───────────
+const RSS_FEEDS = [
+  { name: 'IGN',           url: 'https://feeds.feedburner.com/ign/games-all' },
+  { name: 'GamesIndustry', url: 'https://www.gamesindustry.biz/feed' },
+  { name: 'GameSpot',      url: 'https://www.gamespot.com/feeds/mashup/' },
+  { name: 'VGC',           url: 'https://www.videogameschronicle.com/feed/' },
+];
+const NEWS_CACHE = { data: null, ts: 0 };
+const NEWS_TTL   = 15 * 60 * 1000; // 15 min
+
+async function fetchGamingNews(perFeed = 10) {
+  if (NEWS_CACHE.data && Date.now() - NEWS_CACHE.ts < NEWS_TTL) {
+    return NEWS_CACHE.data;
+  }
+  const API = 'https://api.rss2json.com/v1/api.json?count=' + perFeed + '&rss_url=';
+  const all = [];
+
+  await Promise.all(RSS_FEEDS.map(async src => {
+    try {
+      const r = await fetch(API + encodeURIComponent(src.url), {
+        signal: AbortSignal.timeout(6000)
+      });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.status !== 'ok' || !Array.isArray(d.items)) return;
+      d.items.forEach(item => {
+        const desc = item.description
+          ? item.description.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 240)
+          : '';
+        const thumb = item.thumbnail
+          || (item.enclosure?.type?.startsWith('image') ? item.enclosure.link : null)
+          || d.feed?.image || null;
+        all.push({
+          source:  src.name,
+          title:   (item.title || '').trim(),
+          link:    item.link || '#',
+          pubDate: item.pubDate || new Date().toISOString(),
+          desc,
+          thumb,
+        });
+      });
+    } catch (e) {
+      console.warn('[GameStock News]', src.name, e.message);
+    }
+  }));
+
+  const sorted = all
+    .filter(a => a.title)
+    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+  NEWS_CACHE.data = sorted;
+  NEWS_CACHE.ts   = Date.now();
+  return sorted;
+}
+
