@@ -8,6 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <script src="config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#8b5cf6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -19,6 +24,9 @@
         <span class="logo-icon">🎮</span>
         <span class="logo-text">Game<span class="logo-accent">Stock</span></span>
       </div>
+      <button class="hamburger" id="hamburger" onclick="toggleNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
       <nav class="nav" id="nav">
         <button class="nav-btn" data-page="market" onclick="showPage('market')">Marché</button>
         <button class="nav-btn" data-page="portfolio" onclick="showPage('portfolio')">Portfolio</button>
@@ -29,10 +37,14 @@
         <button class="nav-btn" data-page="news" onclick="showPage('news')">Actualités</button>
       </nav>
       <div class="header-wallet">
-        <span class="wallet-label">Solde</span>
-        <span class="wallet-amount" id="cashDisplay">$10 000.00</span>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Mode clair/sombre">🌙</button>
+        <div>
+          <span class="wallet-label">Solde</span>
+          <span class="wallet-amount" id="cashDisplay">$10 000.00</span>
+        </div>
       </div>
     </div>
+    <div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
     <!-- Source status bar -->
     <div class="source-bar" id="sourceBar">
       <span class="source-bar-label">Sources de données :</span>
@@ -350,6 +362,23 @@
 
   <!-- Toast notification -->
   <div class="toast" id="toast"></div>
+
+  <!-- Onboarding (1ère visite) -->
+  <div class="onboarding-overlay" id="onboarding">
+    <div class="onboarding-modal">
+      <div class="ob-logo">🎮</div>
+      <h2 class="ob-title">Bienvenue sur <span>GameStock</span></h2>
+      <p class="ob-sub">L'outil d'investissement dédié au secteur du jeu vidéo</p>
+      <div class="ob-features">
+        <div class="ob-feat"><span>📈</span><div><strong>Marché temps réel</strong><p>12 actions gaming en euros</p></div></div>
+        <div class="ob-feat"><span>🔔</span><div><strong>Alertes de prix</strong><p>Notifications automatiques</p></div></div>
+        <div class="ob-feat"><span>📅</span><div><strong>Calendrier Gaming</strong><p>Sorties &amp; earnings 2026</p></div></div>
+        <div class="ob-feat"><span>📊</span><div><strong>Analyse avancée</strong><p>Comparateur &amp; simulateur</p></div></div>
+      </div>
+      <button class="ob-btn" onclick="closeOnboarding()">Commencer à investir →</button>
+      <p class="ob-skip" onclick="closeOnboarding()">Passer</p>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="fetcher.js"></script>

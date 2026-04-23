@@ -159,6 +159,8 @@ function showPage(name) {
   if (name === 'alertes')     renderAlerts();
   if (name === 'calendrier')  renderCalendar();
   if (name === 'analyse')     renderAnalyse();
+  // Ferme la nav mobile après sélection
+  if (typeof closeNav === 'function') closeNav();
 }
 
 // ── ANALYSE ────────────────────────────────────
@@ -494,12 +496,18 @@ function renderMarket() {
   });
   // Ticker
   renderTicker();
-  // Index
-  const avg = STOCKS.reduce((a,b) => a+b.change, 0) / STOCKS.length;
-  document.getElementById('indexValue').textContent = '2 847.32';
+  // Indice Gaming (pondéré par capitalisation)
+  const IDX_WEIGHTS = { msft:0.22,sony:0.18,ntdoy:0.15,rblx:0.08,atvi:0.08,ea:0.08,ttwo:0.06,ntes:0.05,se:0.04,unity:0.04,ubisoft:0.01,glxyz:0.01 };
+  const idxChg = STOCKS.reduce((s, x) => s + x.change * (IDX_WEIGHTS[x.id] ?? 0.01), 0);
+  // Valeur de l'indice : base fictive de 2000 pts modulée par l'historique
+  const idxBase = 2000;
+  const idxPriceW = STOCKS.reduce((s, x) => s + (x.history[0] || x.price) * (IDX_WEIGHTS[x.id] ?? 0.01), 0);
+  const idxNow    = STOCKS.reduce((s, x) => s + x.price * (IDX_WEIGHTS[x.id] ?? 0.01), 0);
+  const idxVal    = idxBase * (idxNow / (idxPriceW || idxNow));
+  document.getElementById('indexValue').textContent = idxVal.toFixed(0) + ' pts';
   const ic = document.getElementById('indexChange');
-  ic.textContent = pct(avg);
-  ic.style.color = avg >= 0 ? 'var(--green)' : 'var(--red)';
+  ic.textContent = pct(idxChg);
+  ic.style.color = idxChg >= 0 ? 'var(--green)' : 'var(--red)';
 }
 
 function catLabel(c) {
@@ -1394,6 +1402,57 @@ async function refreshLoop() {
   checkAlerts();
   checkTargetsStopLoss();
 }
+
+// ── PHASE 6 — UX & MOBILE ────────────────────
+
+// Hamburger / Nav mobile
+function toggleNav() {
+  const nav = document.getElementById('nav');
+  const hbg = document.getElementById('hamburger');
+  const ovl = document.getElementById('navOverlay');
+  nav.classList.toggle('open');
+  hbg.classList.toggle('open');
+  ovl.classList.toggle('open');
+  document.body.style.overflow = nav.classList.contains('open') ? 'hidden' : '';
+}
+function closeNav() {
+  document.getElementById('nav').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
+  document.getElementById('navOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Dark / Light mode
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-mode');
+  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('gs_theme', isLight ? 'light' : 'dark');
+}
+function loadTheme() {
+  if (localStorage.getItem('gs_theme') === 'light') {
+    document.body.classList.add('light-mode');
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+
+// Onboarding (1ère visite)
+function showOnboarding() {
+  if (!localStorage.getItem('gs_welcomed')) {
+    setTimeout(() => {
+      document.getElementById('onboarding').classList.add('open');
+    }, 800);
+  }
+}
+function closeOnboarding() {
+  localStorage.setItem('gs_welcomed', '1');
+  document.getElementById('onboarding').classList.remove('open');
+}
+
+// Init Phase 6
+loadTheme();
+showOnboarding();
+
 
 // ── INIT ──────────────────────────────────────
 // Restaurer le portfolio sauvegardé
