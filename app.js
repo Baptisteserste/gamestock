@@ -27,32 +27,61 @@ const NEWS = [
   { emoji:'📱', tag:'Croissance', title:'Roblox enregistre +34% d\'utilisateurs actifs journaliers', date:'Il y a 2j', impact:'pos', tickers:['RBLX'] },
 ];
 
-// ── CALENDRIER GAMING ──────────────────────────
+// ── CALENDRIER GAMING 2026 — DONNÉES RÉELLES ──
 const EVENTS = [
-  // Sorties de jeux
-  { id:'gta6',        type:'release',  icon:'🌆', title:'GTA VI — Sortie mondiale',               date:'2026-05-26', stockIds:['ttwo'],        impact:'pos', desc:'Sortie très attendue, potentiel cours record pour TTWO' },
-  { id:'cod26',       type:'release',  icon:'💥', title:'Call of Duty 2026 — Annonce officielle',  date:'2026-06-10', stockIds:['msft','atvi'], impact:'pos', desc:'Prochain opus COD, intégration Game Pass' },
-  { id:'ubi-sw',      type:'release',  icon:'🦅', title:'Star Wars Outlaws — DLC majeur',          date:'2026-05-15', stockIds:['ubisoft'],     impact:'pos', desc:'Extension très attendue de la communauté' },
-  { id:'nswitch2',    type:'release',  icon:'🎮', title:'Nintendo Switch 2 — Lancement Europe',    date:'2026-06-05', stockIds:['ntdoy'],       impact:'pos', desc:'Lancement UE avec Mario Kart World' },
-  { id:'rblx-upd',    type:'release',  icon:'🧱', title:'Roblox — Mise à jour moteur graphique',   date:'2026-07-01', stockIds:['rblx'],        impact:'pos', desc:'Nouveau moteur physique next-gen' },
-  { id:'ea-fc27',     type:'release',  icon:'⚽', title:'EA FC 27 — Annonce officielle',           date:'2026-07-15', stockIds:['ea'],          impact:'neu', desc:'Présentation de la prochaine édition football' },
-  { id:'sea-ff2',     type:'release',  icon:'🌊', title:'Free Fire 2 — Bêta mondiale',             date:'2026-08-20', stockIds:['se'],          impact:'pos', desc:'Suite de Free Fire, très attendue en Asie' },
-  // Earnings
-  { id:'msft-earn',   type:'earnings', icon:'📊', title:'Microsoft — Résultats Q3 FY2026',         date:'2026-04-30', stockIds:['msft'],        impact:'pos', desc:'Gaming + Cloud Azure, résultats très suivis' },
-  { id:'ea-earn',     type:'earnings', icon:'📊', title:'Electronic Arts — Résultats Q4 FY2026',   date:'2026-05-07', stockIds:['ea'],          impact:'neu', desc:'Fin d\'exercice fiscal, résultats annuels' },
-  { id:'rblx-earn',   type:'earnings', icon:'📊', title:'Roblox — Résultats Q1 2026',              date:'2026-05-08', stockIds:['rblx'],        impact:'neu', desc:'Chiffres DAU et revenus monétisation' },
-  { id:'ntdoy-earn',  type:'earnings', icon:'📊', title:'Nintendo — Résultats FY2026',             date:'2026-05-09', stockIds:['ntdoy'],       impact:'pos', desc:'Exercice annuel — succès Switch 2 inclus' },
-  { id:'sony-earn',   type:'earnings', icon:'📊', title:'Sony Group — Résultats Q4 FY2026',        date:'2026-05-14', stockIds:['sony'],        impact:'neu', desc:'Division PlayStation, films et musique' },
-  { id:'ubi-earn',    type:'earnings', icon:'📊', title:'Ubisoft — Résultats FY2026',              date:'2026-05-22', stockIds:['ubisoft'],     impact:'neg', desc:'Résultats annuels dans un contexte difficile' },
-  { id:'ttwo-earn',   type:'earnings', icon:'📊', title:'Take-Two — Résultats Q4 FY2026',          date:'2026-05-19', stockIds:['ttwo'],        impact:'neu', desc:'Avant lancement GTA VI, anticipations élevées' },
-  { id:'ntes-earn',   type:'earnings', icon:'📊', title:'NetEase — Résultats Q1 2026',             date:'2026-06-03', stockIds:['ntes'],        impact:'neu', desc:'Marché chinois, impact régulateur' },
-  // Événements secteur
-  { id:'sony-sop',    type:'event',    icon:'🎯', title:'PlayStation State of Play — Juin 2026',   date:'2026-06-03', stockIds:['sony'],        impact:'pos', desc:'Présentation des exclusivités PS5 Pro' },
-  { id:'sgf26',       type:'event',    icon:'🎪', title:'Summer Game Fest 2026',                   date:'2026-06-06', stockIds:[],             impact:'pos', desc:'Grands reveals de l\'été gaming' },
-  { id:'ndir-may',    type:'event',    icon:'🎮', title:'Nintendo Direct — Mai 2026',              date:'2026-05-28', stockIds:['ntdoy'],       impact:'pos', desc:'Présentation Switch 2 + line-up été' },
-  { id:'gamescom26',  type:'event',    icon:'🎡', title:'Gamescom 2026 — Cologne',                 date:'2026-08-26', stockIds:[],             impact:'pos', desc:'Plus grand salon gaming mondial' },
-  { id:'tga26',       type:'event',    icon:'🏆', title:'The Game Awards 2026',                    date:'2026-12-10', stockIds:[],             impact:'pos', desc:'Cérémonie annuelle + reveals exclusifs' },
+
+  // ══ SORTIES DE JEUX ══════════════════════════
+
+  // MAI 2026
+  { id:'forza6',      type:'release',  icon:'🏎️', title:'Forza Horizon 6 — Xbox & PC',             date:'2026-05-19', stockIds:['msft'],        impact:'pos', desc:'Sixième opus de la série open-world racing d\'Xbox, day one Game Pass' },
+  { id:'007fl',       type:'release',  icon:'🕵️', title:'007 First Light — Xbox & PS5',            date:'2026-05-27', stockIds:['msft'],        impact:'pos', desc:'Nouveau jeu James Bond développé par IO Interactive' },
+  { id:'ubi-shadow',  type:'release',  icon:'🗡️', title:'AC Shadows — DLC "Clans en Guerre"',      date:'2026-05-20', stockIds:['ubisoft'],     impact:'pos', desc:'Contenu additionnel majeur d\'Assassin\'s Creed Shadows' },
+
+  // JUIN 2026
+  { id:'sgf26',       type:'event',    icon:'🎪', title:'Summer Game Fest 2026 — Los Angeles',     date:'2026-06-05', stockIds:[],             impact:'pos', desc:'Grande présentation gaming depuis le Dolby Theatre — annonces mondiales' },
+  { id:'xbox-show',   type:'event',    icon:'🎮', title:'Xbox Games Showcase 2026',                date:'2026-06-07', stockIds:['msft'],        impact:'pos', desc:'Première mondiale Gears of War E-Day + roadmap Xbox 2026-2027' },
+  { id:'geow-direct', type:'event',    icon:'⚙️', title:'Gears of War: E-Day Direct',              date:'2026-06-07', stockIds:['msft'],        impact:'pos', desc:'Deep-dive immédiatement après Xbox Showcase — date de sortie attendue' },
+  { id:'sony-sop',    type:'event',    icon:'🎯', title:'PlayStation State of Play — Juin 2026',   date:'2026-06-10', stockIds:['sony'],        impact:'pos', desc:'Présentation exclusivités PS5 + annonces partenaires' },
+
+  // JUILLET 2026
+  { id:'ea-cf26',     type:'release',  icon:'🏈', title:'EA Sports College Football 26',           date:'2026-07-18', stockIds:['ea'],          impact:'pos', desc:'Deuxième opus du retour de la licence college football — succès attendu' },
+  { id:'ea-fc27',     type:'release',  icon:'⚽', title:'EA FC 27 — Annonce officielle',           date:'2026-07-22', stockIds:['ea'],          impact:'neu', desc:'Prochain opus de la série football EA FC' },
+
+  // AOÛT 2026
+  { id:'gamescom26',  type:'event',    icon:'🎡', title:'Gamescom 2026 — Cologne, Allemagne',      date:'2026-08-26', stockIds:[],             impact:'pos', desc:'Plus grand salon gaming mondial — opening night live, reveals exclusifs' },
+
+  // SEPTEMBRE 2026
+  { id:'tgs26',       type:'event',    icon:'🗾', title:'Tokyo Game Show 2026',                    date:'2026-09-17', stockIds:['ntdoy','sony','ntes'], impact:'pos', desc:'Plus grand salon gaming asiatique — Nintendo, Sony, NetEase' },
+  { id:'pax-w26',     type:'event',    icon:'🎲', title:'PAX West 2026 — Seattle',                 date:'2026-09-04', stockIds:[],             impact:'neu', desc:'Convention gaming indé et AAA — annonces et démos jouables' },
+  { id:'bl4-dlc',     type:'release',  icon:'💥', title:'Borderlands 4 — Season Pass DLC 1',      date:'2026-09-12', stockIds:['ttwo'],        impact:'pos', desc:'Premier DLC majeur de Borderlands 4 (sorti en 2025) — extension monde' },
+
+  // OCTOBRE 2026
+  { id:'fable26',     type:'release',  icon:'🧙', title:'Fable — Xbox, PC & PS5',                 date:'2026-10-15', stockIds:['msft'],        impact:'pos', desc:'Reboot du RPG culte Lionhead — Autumn 2026 confirmé, day one Game Pass' },
+
+  // NOVEMBRE 2026
+  { id:'gta6',        type:'release',  icon:'🌆', title:'Grand Theft Auto VI — PS5 & Xbox',       date:'2026-11-19', stockIds:['ttwo'],        impact:'pos', desc:'Sortie confirmée — le jeu le plus attendu de la décennie, potentiel record' },
+
+  // DÉCEMBRE 2026
+  { id:'tga26',       type:'event',    icon:'🏆', title:'The Game Awards 2026',                    date:'2026-12-10', stockIds:[],             impact:'pos', desc:'Cérémonie annuelle GOTY + reveals exclusifs des plus grands éditeurs' },
+
+  // ══ EARNINGS (RÉSULTATS FINANCIERS) ══════════
+
+  // Semaine du 30 avril 2026
+  { id:'msft-earn',   type:'earnings', icon:'📊', title:'Microsoft — Résultats Q3 FY2026',         date:'2026-04-30', stockIds:['msft'],        impact:'pos', desc:'Gaming + Cloud Azure, Activision pleinement intégré — résultats très suivis' },
+
+  // Semaine du 6 mai 2026
+  { id:'unity-earn',  type:'earnings', icon:'📊', title:'Unity Technologies — Résultats Q1 2026', date:'2026-05-06', stockIds:['unity'],       impact:'neu', desc:'Post-restructuration, premiers chiffres de la nouvelle stratégie' },
+  { id:'ea-earn',     type:'earnings', icon:'📊', title:'Electronic Arts — Résultats Q4 FY2026',  date:'2026-05-07', stockIds:['ea'],          impact:'neu', desc:'Fin d\'exercice annuel — EA FC 26, College Football 25, résultats complets' },
+  { id:'rblx-earn',   type:'earnings', icon:'📊', title:'Roblox — Résultats Q1 2026',             date:'2026-05-08', stockIds:['rblx'],        impact:'neu', desc:'DAU, revenus monétisation et expansion internationale' },
+  { id:'ntdoy-earn',  type:'earnings', icon:'📊', title:'Nintendo — Résultats annuels FY2026',    date:'2026-05-09', stockIds:['ntdoy'],       impact:'pos', desc:'Premier bilan avec Switch 2 inclus — très attendu des investisseurs' },
+  { id:'se-earn',     type:'earnings', icon:'📊', title:'Sea Limited — Résultats Q1 2026',        date:'2026-05-13', stockIds:['se'],          impact:'neu', desc:'Garena (Free Fire), Shopee, SeaMoney — croissance Asie du Sud-Est' },
+  { id:'sony-earn',   type:'earnings', icon:'📊', title:'Sony Group — Résultats Q4 FY2026',       date:'2026-05-14', stockIds:['sony'],        impact:'neu', desc:'PlayStation 5 + PS5 Pro, films, musique — résultats annuels complets' },
+  { id:'ttwo-earn',   type:'earnings', icon:'📊', title:'Take-Two — Résultats Q4 FY2026',         date:'2026-05-19', stockIds:['ttwo'],        impact:'neu', desc:'Avant GTA VI — anticipations très élevées, pipeline 2026-2027' },
+  { id:'ubi-earn',    type:'earnings', icon:'📊', title:'Ubisoft — Résultats annuels FY2026',     date:'2026-05-22', stockIds:['ubisoft'],     impact:'neg', desc:'Contexte difficile — restructuration, AC Shadows comme bouée de sauvetage' },
+  { id:'ntes-earn',   type:'earnings', icon:'📊', title:'NetEase — Résultats Q1 2026',            date:'2026-06-03', stockIds:['ntes'],        impact:'neu', desc:'Marché chinois, régulation gaming, expansion internationale' },
+
 ];
+
 
 function getDaysUntil(dateStr) {
   const now = new Date(); now.setHours(0,0,0,0);
