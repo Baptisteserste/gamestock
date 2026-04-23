@@ -278,8 +278,171 @@ function showPage(name) {
   if (name === 'alertes')     renderAlerts();
   if (name === 'calendrier')  renderCalendar();
   if (name === 'analyse')     renderAnalyse();
+  if (name === 'conseils')    renderConseils();
   // Ferme la nav mobile après sélection
   if (typeof closeNav === 'function') closeNav();
+}
+
+// ── CONSEILS D'INVESTISSEMENT ──────────────────
+
+let screenerTab = 'buy';
+
+const BROKERS = {
+  traderepublic: { name: 'Trade Republic', feeLabel: '1\u20ac fixe',         fee: () => 1.0 },
+  degiro:        { name: 'DEGIRO',         feeLabel: '0.50\u20ac + 0.004%',   fee: (t) => +(0.5 + t * 0.00004).toFixed(2) },
+  bolero:        { name: 'Bolero (KBC)',   feeLabel: '7.50\u20ac fixe',        fee: () => 7.5 },
+};
+const TOB_RATE = 0.0035; // 0.35% taxe boursière belge
+
+function renderConseils() {
+  const signals = STOCKS
+    .map(s => ({ stock: s, sig: getSignal(s.id), upcoming: getUpcomingEvents(s.id, 30) }))
+    .sort((a, b) => b.sig.score - a.sig.score);
+
+  // Top 3
+  const top3 = signals.slice(0, 3);
+  const medals = ['\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49'];
+  document.getElementById('topPicksGrid').innerHTML = top3.map((x, i) => {
+    const upEv = x.upcoming[0];
+    const macdIcon = x.sig.macd === 'up' ? '\u2197' : x.sig.macd === 'down' ? '\u2198' : '\u2192';
+    return `
+      <div class="top-pick-card" onclick="openModal('${x.stock.id}')" style="--sig-color:${x.sig.color}">
+        <div class="tp-head">
+          <span class="tp-medal">${medals[i]}</span>
+          <span class="tp-emoji">${x.stock.emoji}</span>
+          <div class="tp-info">
+            <div class="tp-name">${x.stock.name}</div>
+            <div class="tp-ticker">${x.stock.ticker}</div>
+          </div>
+          <span class="signal-badge signal-${x.sig.signal}">${x.sig.label}</span>
+        </div>
+        <div class="tp-score-bar-wrap">
+          <div class="tp-score-bar" style="width:${x.sig.score}%;background:${x.sig.color}"></div>
+        </div>
+        <div class="tp-stats">
+          <span>Score <strong style="color:${x.sig.color}">${x.sig.score}/100</strong></span>
+          <span>RSI <strong>${x.sig.rsi}</strong></span>
+          <span>MACD <strong>${macdIcon}</strong></span>
+          <span>30j <strong style="color:${x.sig.perf30>=0?'var(--green)':'var(--red)'}">${x.sig.perf30>=0?'+':''}${x.sig.perf30}%</strong></span>
+        </div>
+        <div class="tp-price">${fmt(x.stock.price)}</div>
+        ${upEv ? `<div class="tp-event">\ud83d\udcc5 ${upEv.title.slice(0, 40)}${upEv.title.length>40?'...':''} — dans ${getDaysUntil(upEv.date)}j</div>` : ''}
+        <div class="tp-reasons">${x.sig.reasons.slice(0,2).map(r => `<span>\u2022 ${r}</span>`).join('')}</div>
+      </div>`;
+  }).join('');
+
+  // Screener
+  setScreenerTab(screenerTab, signals);
+}
+
+function setScreenerTab(tab, signals) {
+  screenerTab = tab;
+  document.querySelectorAll('.stab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+
+  if (!signals) {
+    signals = STOCKS
+      .map(s => ({ stock: s, sig: getSignal(s.id), upcoming: getUpcomingEvents(s.id, 30) }))
+      .sort((a, b) => b.sig.score - a.sig.score);
+  }
+
+  let items;
+  if (tab === 'buy')      items = signals.filter(x => x.sig.score >= 55);
+  if (tab === 'watch')    items = signals.filter(x => x.sig.score >= 40 && x.sig.score < 55);
+  if (tab === 'catalyst') items = signals.filter(x => x.upcoming.length > 0);
+  if (tab === 'avoid')    items = signals.filter(x => x.sig.score < 40);
+
+  const el = document.getElementById('screenerContent');
+  if (!items || items.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:32px 0;text-align:center"><span style="font-size:2rem">\ud83d\udd0d</span><p style="color:var(--muted);margin-top:8px">Aucune action dans cette cat\u00e9gorie actuellement.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="screener-table">
+      <div class="screener-head">
+        <span>Action</span><span>Signal</span><span>Score</span><span>RSI</span><span>MACD</span><span>Perf.30j</span><span>Prix</span>${tab==='catalyst'?'<span>\u00c9v\u00e9nement</span>':''}
+      </div>
+      ${items.map(x => {
+        const mi = x.sig.macd==='up'?'\u2197':x.sig.macd==='down'?'\u2198':'\u2192';
+        const mc = x.sig.macd==='up'?'var(--green)':x.sig.macd==='down'?'var(--red)':'var(--muted)';
+        const ev = x.upcoming[0];
+        return `
+          <div class="screener-row" onclick="openModal('${x.stock.id}')">
+            <span class="sc-name">${x.stock.emoji} <strong>${x.stock.ticker}</strong></span>
+            <span><span class="signal-badge signal-${x.sig.signal}">${x.sig.label}</span></span>
+            <span style="color:${x.sig.color};font-weight:700">${x.sig.score}/100</span>
+            <span style="color:${x.sig.rsi<30?'var(--green)':x.sig.rsi>70?'var(--red)':'var(--muted)'}">${x.sig.rsi}</span>
+            <span style="color:${mc}">${mi}</span>
+            <span style="color:${x.sig.perf30>=0?'var(--green)':'var(--red)'}">${x.sig.perf30>=0?'+':''}${x.sig.perf30}%</span>
+            <span>${fmt(x.stock.price)}</span>
+            ${tab==='catalyst'&&ev?`<span class="sc-event">\ud83d\udcc5 ${ev.title.slice(0,28)}... dans ${getDaysUntil(ev.date)}j</span>`:'<span></span>'}
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function calcAllocation() {
+  const budget   = parseFloat(document.getElementById('allocBudget').value) || 0;
+  const courtier = document.getElementById('allocCourtier').value;
+  if (budget <= 0) return;
+  const broker = BROKERS[courtier];
+
+  const candidates = STOCKS
+    .map(s => ({ stock: s, sig: getSignal(s.id) }))
+    .filter(x => x.sig.score >= 55)
+    .sort((a, b) => b.sig.score - a.sig.score)
+    .slice(0, 5);
+
+  const el = document.getElementById('allocResult');
+
+  if (candidates.length === 0) {
+    el.innerHTML = `<div class="alloc-empty-msg">\ud83e\udd14 Aucun signal d'achat actif en ce moment. Attendez un meilleur point d'entr\u00e9e ou baissez le seuil de score.</div>`;
+    return;
+  }
+
+  const totalScore = candidates.reduce((s, x) => s + x.sig.score, 0);
+  let rows = '', totalSpent = 0, totalFees = 0, totalTob = 0;
+
+  candidates.forEach(x => {
+    const pct      = x.sig.score / totalScore;
+    const alloc    = budget * pct;
+    const priceEur = x.stock.price * eurRate;
+    const shares   = Math.floor(alloc / priceEur);
+    if (shares === 0) return;
+    const cost     = +(shares * priceEur).toFixed(2);
+    const fee      = +broker.fee(cost).toFixed(2);
+    const tob      = +(cost * TOB_RATE).toFixed(2);
+    const total    = +(cost + fee + tob).toFixed(2);
+    totalSpent += cost; totalFees += fee; totalTob += tob;
+    rows += `
+      <div class="alloc-row">
+        <span class="alloc-name">${x.stock.emoji} <strong>${x.stock.ticker}</strong></span>
+        <span class="alloc-shares"><strong>${shares}</strong> action${shares>1?'s':''}</span>
+        <span class="alloc-pct">${(pct*100).toFixed(0)}%</span>
+        <span>${cost.toFixed(2)}\u20ac</span>
+        <span class="alloc-fee">+${fee}\u20ac frais</span>
+        <span class="alloc-tob">+${tob.toFixed(2)}\u20ac TOB</span>
+        <span class="alloc-total"><strong>${total.toFixed(2)}\u20ac</strong></span>
+      </div>`;
+  });
+
+  const grand = +(totalSpent + totalFees + totalTob).toFixed(2);
+  const rest  = +(budget - grand).toFixed(2);
+
+  el.innerHTML = rows
+    ? `<div class="alloc-result">
+        <div class="alloc-context">Courtier\u00a0: <strong>${broker.name}</strong> (${broker.feeLabel}) \u00b7 Budget\u00a0: <strong>${budget}\u20ac</strong></div>
+        <div class="alloc-head">
+          <span>Action</span><span>Qt\u00e9</span><span>Poids</span><span>Co\u00fbt</span><span>Frais courtier</span><span>TOB (0.35%)</span><span>Total</span>
+        </div>
+        ${rows}
+        <div class="alloc-summary">
+          <span>\ud83d\udcb0 Total investi\u00a0: <strong>${grand}\u20ac</strong></span>
+          <span style="color:var(--muted)">${rest > 0 ? `\u00b7 ${rest.toFixed(2)}\u20ac non investi` : ''}</span>
+          <span style="color:var(--muted);font-size:.75rem">dont ${totalFees.toFixed(2)}\u20ac frais + ${totalTob.toFixed(2)}\u20ac TOB</span>
+        </div>
+      </div>`
+    : `<div class="alloc-empty-msg">Budget insuffisant pour acheter au moins 1 action des candidats s\u00e9lectionn\u00e9s.</div>`;
 }
 
 // ── ANALYSE ────────────────────────────────────

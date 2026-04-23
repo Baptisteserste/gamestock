@@ -34,6 +34,7 @@
         <button class="nav-btn" data-page="alertes" onclick="showPage('alertes')">🔔 Alertes <span class="nav-badge" id="alertBadge">0</span></button>
         <button class="nav-btn" data-page="calendrier" onclick="showPage('calendrier')">📅 Calendrier</button>
         <button class="nav-btn" data-page="analyse" onclick="showPage('analyse')">📊 Analyse</button>
+        <button class="nav-btn" data-page="conseils" onclick="showPage('conseils')">💡 Conseils</button>
         <button class="nav-btn" data-page="news" onclick="showPage('news')">Actualités</button>
       </nav>
       <div class="header-wallet">
@@ -262,7 +263,117 @@
       </div>
     </section>
 
-    <!-- ===================== PAGE ACTUALITÉS ===================== -->
+    <!-- ===================== PAGE CONSEILS ===================== -->
+    <section class="page" id="page-conseils">
+      <div class="page-header">
+        <h1>Conseils <span class="gradient-text">d'Investissement</span></h1>
+        <p class="subtitle">Signaux RSI · Momentum · Catalyseurs · Allocation optimale</p>
+      </div>
+
+      <!-- Top 3 picks -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">🏆 Meilleures opportunités du moment</h2>
+        <div class="top-picks-grid" id="topPicksGrid"></div>
+      </div>
+
+      <!-- Screener -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">📋 Screener d'actions</h2>
+        <div class="screener-tabs" id="screenerTabs">
+          <button class="stab active" data-tab="buy"     onclick="setScreenerTab('buy')">🟢 Acheter</button>
+          <button class="stab"        data-tab="watch"   onclick="setScreenerTab('watch')">🟡 Surveiller</button>
+          <button class="stab"        data-tab="catalyst" onclick="setScreenerTab('catalyst')">📅 Catalyseurs</button>
+          <button class="stab"        data-tab="avoid"   onclick="setScreenerTab('avoid')">🔴 Éviter</button>
+        </div>
+        <div id="screenerContent"></div>
+      </div>
+
+      <!-- Calculateur d'allocation -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">💰 Calculateur d'allocation</h2>
+        <p class="conseils-sub">Indique ton budget et ton courtier — l'app calcule exactement quoi acheter, avec frais et TOB belge inclus.</p>
+        <div class="alloc-form">
+          <div class="alloc-field">
+            <label>Budget disponible</label>
+            <div class="alloc-input-wrap">
+              <input type="number" id="allocBudget" value="500" min="10" step="50" />
+              <span class="alloc-unit">€</span>
+            </div>
+          </div>
+          <div class="alloc-field">
+            <label>Courtier</label>
+            <select id="allocCourtier">
+              <option value="traderepublic">Trade Republic — 1€ / ordre</option>
+              <option value="degiro">DEGIRO — 0.50€ + 0.004%</option>
+              <option value="bolero">Bolero (KBC) — 7.50€ / ordre</option>
+            </select>
+          </div>
+          <button class="btn-simulate" onclick="calcAllocation()">Calculer l'allocation →</button>
+        </div>
+        <div id="allocResult"></div>
+      </div>
+
+      <!-- Guide courtiers belges -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">🏦 Guide courtiers — Belgique</h2>
+        <div class="broker-cards">
+          <div class="broker-card best">
+            <div class="broker-recommend">✅ Recommandé débutant</div>
+            <div class="broker-name">Trade Republic</div>
+            <div class="broker-fee">1 € / ordre</div>
+            <ul class="broker-list">
+              <li>Compte ouvert en 10 minutes</li>
+              <li>Interface mobile ultra-simple</li>
+              <li>Idéal pour petits montants (&lt; 500€)</li>
+              <li>Plan d'épargne automatique possible</li>
+            </ul>
+          </div>
+          <div class="broker-card">
+            <div class="broker-name">DEGIRO</div>
+            <div class="broker-fee">0.50€ + 0.004%</div>
+            <ul class="broker-list">
+              <li>Meilleur pour &gt; 200€ / ordre</li>
+              <li>Large sélection mondiale</li>
+              <li>Frais très compétitifs sur gros ordres</li>
+              <li>Interface web complète</li>
+            </ul>
+          </div>
+          <div class="broker-card">
+            <div class="broker-name">Bolero <span style="font-size:.7rem;color:var(--muted)">KBC</span></div>
+            <div class="broker-fee">7.50€ / ordre</div>
+            <ul class="broker-list">
+              <li>Banque belge établie et régulée</li>
+              <li>Conseiller disponible</li>
+              <li>Rentable seulement &gt; 2 000€ / ordre</li>
+              <li>Reporting fiscal automatique</li>
+            </ul>
+          </div>
+        </div>
+        <div class="tax-box">
+          <div class="tax-title">📋 Fiscalité belge — Ce que tu dois savoir</div>
+          <div class="tax-grid">
+            <div class="tax-item">
+              <span class="tax-label">TOB (Taxe Opérations Boursières)</span>
+              <span class="tax-val">0.35% par ordre (achat ET vente) — max 1 600€</span>
+            </div>
+            <div class="tax-item">
+              <span class="tax-label">Précompte mobilier (dividendes)</span>
+              <span class="tax-val">30% retenu à la source</span>
+            </div>
+            <div class="tax-item good">
+              <span class="tax-label">Plus-values (revente avec gain)</span>
+              <span class="tax-val">✅ NON taxées en Belgique !</span>
+            </div>
+            <div class="tax-item">
+              <span class="tax-label">Compte-titres &gt; 1 000 000€</span>
+              <span class="tax-val">Taxe annuelle de 0.15%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
     <section class="page" id="page-news">
       <div class="page-header">
         <div class="page-header-row">
