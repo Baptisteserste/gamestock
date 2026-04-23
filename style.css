@@ -1260,6 +1260,44 @@ body {
 .fund-risk strong { letter-spacing:1px; }
 
 /* ============================
+   SIGNAUX D'INVESTISSEMENT
+   ============================ */
+/* Badge sur les cartes */
+.signal-badge {
+  font-size:0.68rem; font-weight:800; padding:3px 10px; border-radius:999px;
+  letter-spacing:0.8px; border:1px solid currentColor; white-space:nowrap;
+}
+.signal-buy     { color:var(--green); background:rgba(34,197,94,0.12);  border-color:rgba(34,197,94,0.4);  }
+.signal-watch   { color:#84cc16;      background:rgba(132,204,22,0.12); border-color:rgba(132,204,22,0.4); }
+.signal-hold    { color:var(--muted); background:var(--subtle);          border-color:var(--border);        }
+.signal-caution { color:#f59e0b;      background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.4); }
+.signal-sell    { color:var(--red);   background:rgba(239,68,68,0.12);  border-color:rgba(239,68,68,0.4);  }
+.rsi-mini { font-size:0.68rem; color:var(--muted); font-family:var(--font-head); font-weight:600; }
+
+/* Panneau signal dans le modal */
+.modal-signal-panel {
+  background:var(--subtle); border-radius:var(--radius-md); padding:16px;
+  margin:12px 0; border:1px solid var(--border);
+}
+.signal-panel-header {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+}
+.signal-panel-verdict { font-family:var(--font-head); font-size:1.05rem; font-weight:800; letter-spacing:0.5px; }
+.signal-score-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
+.signal-score-bar-wrap {
+  height:6px; background:var(--border); border-radius:999px; overflow:hidden; margin-bottom:12px;
+}
+.signal-score-bar { height:100%; border-radius:999px; transition:width 0.6s ease; }
+.signal-indicators {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px;
+}
+.sig-ind { background:var(--bg-card); border-radius:var(--radius-sm); padding:8px 10px; }
+.sig-ind span { font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.7px; display:block; margin-bottom:3px; }
+.sig-ind strong { font-size:0.82rem; font-weight:600; }
+.signal-reasons { display:flex; flex-direction:column; gap:4px; }
+.sig-reason { font-size:0.75rem; color:var(--muted); line-height:1.4; }
+
+/* ============================
    PHASE 6 — MODE CLAIR
    ============================ */
 body.light-mode {

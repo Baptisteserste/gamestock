@@ -88,6 +88,97 @@ function getRiskScore(stockId) {
   return               { level:5, label:'Extr\u00eame',    color:'#dc2626', stars:'\u25cf\u25cf\u25cf\u25cf\u25cf' };
 }
 
+// ── SIGNAUX TECHNIQUES ────────────────────────
+/**
+ * RSI (Relative Strength Index) sur les 14 dernières périodes
+ * < 30 = survendu (signal achat)  |  > 70 = suracheté (signal vente)
+ */
+function calcRSI(prices, period = 14) {
+  if (prices.length < period + 1) return 50; // neutre par défaut
+  let gains = 0, losses = 0;
+  for (let i = prices.length - period; i < prices.length; i++) {
+    const diff = prices[i] - prices[i - 1];
+    if (diff >= 0) gains  += diff;
+    else           losses -= diff;
+  }
+  const avgGain = gains  / period;
+  const avgLoss = losses / period;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return +(100 - 100 / (1 + rs)).toFixed(1);
+}
+
+/**
+ * Tendance MACD simplifiée : MM rapide (12) vs MM lente (26)
+ * Retourne 'up' | 'down' | 'neutral'
+ */
+function calcMACDTrend(prices) {
+  const ma = (arr, n) => arr.slice(-n).reduce((a, b) => a + b, 0) / Math.min(n, arr.length);
+  if (prices.length < 12) return 'neutral';
+  const fast = ma(prices, 12);
+  const slow = ma(prices, Math.min(26, prices.length));
+  if (fast > slow * 1.005) return 'up';
+  if (fast < slow * 0.995) return 'down';
+  return 'neutral';
+}
+
+/**
+ * Signal global : combine RSI + MACD + performance 30j
+ * Retourne { signal, label, color, score, reasons }
+ */
+function getSignal(stockId) {
+  const s = STOCKS.find(x => x.id === stockId);
+  if (!s || !s.history || s.history.length < 5) {
+    return { signal:'neutral', label:'Données insuffisantes', color:'var(--muted)', score:50, reasons:[] };
+  }
+  const rsi      = calcRSI(s.history);
+  const macd     = calcMACDTrend(s.history);
+  const perf30   = s.history.length >= 30
+    ? ((s.history[s.history.length-1] / s.history[s.history.length-30] - 1) * 100)
+    : s.change;
+  const hi52     = Math.max(...s.history);
+  const lo52     = Math.min(...s.history);
+  const fromHi   = ((s.price - hi52) / hi52) * 100; // % depuis le plus haut
+  const fromLo   = ((s.price - lo52) / lo52) * 100; // % depuis le plus bas
+
+  let score = 50; // base neutre
+  const reasons = [];
+
+  // RSI
+  if (rsi < 30)      { score += 20; reasons.push(`RSI ${rsi} → survendu 🟢`); }
+  else if (rsi < 45) { score += 10; reasons.push(`RSI ${rsi} → légèrement survendu`); }
+  else if (rsi > 70) { score -= 20; reasons.push(`RSI ${rsi} → suracheté 🔴`); }
+  else if (rsi > 60) { score -= 8;  reasons.push(`RSI ${rsi} → proche zone suracheté`); }
+  else               { reasons.push(`RSI ${rsi} → neutre`); }
+
+  // MACD
+  if (macd === 'up')   { score += 12; reasons.push('Tendance haussière (MACD) 🟢'); }
+  if (macd === 'down') { score -= 12; reasons.push('Tendance baissière (MACD) 🔴'); }
+
+  // Performance 30j
+  if (perf30 < -15)  { score += 10; reasons.push(`-${Math.abs(perf30).toFixed(0)}% en 30j → opportunité`); }
+  if (perf30 > 20)   { score -= 8;  reasons.push(`+${perf30.toFixed(0)}% en 30j → déjà cher`); }
+
+  // Position vs historique
+  if (fromHi < -25)  { score += 8;  reasons.push(`${fromHi.toFixed(0)}% vs plus haut → décoté`); }
+  if (fromLo > 40)   { score -= 5;  reasons.push(`+${fromLo.toFixed(0)}% vs plus bas → attention`); }
+
+  // Risque (bêta)
+  const f = FUNDAMENTALS[stockId];
+  if (f?.beta && f.beta > 1.5) { score -= 5; reasons.push(`Bêta élevé (${f.beta}) → volatilité forte`); }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let signal, label, color;
+  if      (score >= 70) { signal='buy';     label='ACHETER';    color='var(--green)'; }
+  else if (score >= 55) { signal='watch';   label='À SURVEILLER'; color='#84cc16';   }
+  else if (score >= 40) { signal='hold';    label='CONSERVER';  color:'var(--muted)'; }
+  else if (score >= 25) { signal='caution'; label='PRUDENCE';   color:'#f59e0b';     }
+  else                  { signal='sell';    label='VENDRE';     color='var(--red)';   }
+
+  return { signal, label, color, score, rsi, macd, perf30: +perf30.toFixed(2), reasons };
+}
+
 // ── STATE ──────────────────────────────────────
 let cash = 10000;
 let holdings = {};
@@ -486,7 +577,9 @@ function renderMarket() {
         ${(() => {
           const r = getRiskScore(s.id);
           const f = FUNDAMENTALS[s.id];
-          return `<span class="risk-mini" style="color:${r.color}">${r.stars} ${r.label}</span>
+          const sig = getSignal(s.id);
+          return `<span class="signal-badge signal-${sig.signal}">${sig.label}</span>
+                  <span class="rsi-mini">RSI ${sig.rsi}</span>
                   <span class="card-beta">β ${f?.beta ?? '—'}</span>`;
         })()}
       </div>`;
@@ -576,21 +669,64 @@ function openModal(id) {
   document.getElementById('mCap').textContent  = s.cap;
   document.getElementById('mPe').textContent   = s.pe ? s.pe + 'x' : 'N/A';
 
-  // Fondamentaux
-  const f = FUNDAMENTALS[s.id] || {};
-  const r = getRiskScore(s.id);
+  // Fondamentaux + Signal
+  const f   = FUNDAMENTALS[s.id] || {};
+  const r   = getRiskScore(s.id);
+  const sig = getSignal(s.id);
+
   const funBox = document.getElementById('modalFundamentals');
   if (funBox) {
     funBox.innerHTML = `
-      <div class="fund-item"><span>CA annuel</span><strong>${f.revenue ?? '—'}</strong></div>
-      <div class="fund-item"><span>Dividende</span><strong>${f.divYield ?? '—'}</strong></div>
-      <div class="fund-item"><span>B\u00eata</span><strong>${f.beta ?? '—'}</strong></div>
-      <div class="fund-item"><span>Employ\u00e9s</span><strong>${f.employees ?? '—'}</strong></div>
+      <div class="fund-item"><span>CA annuel</span><strong>${f.revenue ?? '\u2014'}</strong></div>
+      <div class="fund-item"><span>Dividende</span><strong>${f.divYield ?? '\u2014'}</strong></div>
+      <div class="fund-item"><span>B\u00eata</span><strong>${f.beta ?? '\u2014'}</strong></div>
+      <div class="fund-item"><span>Employ\u00e9s</span><strong>${f.employees ?? '\u2014'}</strong></div>
       <div class="fund-item fund-risk">
         <span>Risque</span>
         <strong style="color:${r.color}">${r.stars} ${r.label}</strong>
       </div>`;
   }
+
+  // Panneau signal d'investissement
+  let signalBox = document.getElementById('modalSignalPanel');
+  if (!signalBox) {
+    signalBox = document.createElement('div');
+    signalBox.id = 'modalSignalPanel';
+    signalBox.className = 'modal-signal-panel';
+    funBox?.insertAdjacentElement('afterend', signalBox);
+  }
+  const macdIcon = sig.macd === 'up' ? '\ud83d\udcc8 Haussier' : sig.macd === 'down' ? '\ud83d\udcc9 Baissier' : '\u2192 Neutre';
+  const macdCol  = sig.macd === 'up' ? 'var(--green)' : sig.macd === 'down' ? 'var(--red)' : 'var(--muted)';
+  signalBox.innerHTML = `
+    <div class="signal-panel-header">
+      <span class="signal-panel-verdict" style="color:${sig.color}">
+        ${sig.signal === 'buy' ? '\ud83d\udfe2' : sig.signal === 'sell' ? '\ud83d\udd34' : '\ud83d\udfe1'} ${sig.label}
+      </span>
+      <span class="signal-score-wrap">
+        <span style="color:var(--muted);font-size:.72rem">Score</span>
+        <strong style="color:${sig.color};font-family:var(--font-head);font-size:1.1rem">${sig.score}/100</strong>
+      </span>
+    </div>
+    <div class="signal-score-bar-wrap">
+      <div class="signal-score-bar" style="width:${sig.score}%;background:${sig.color}"></div>
+    </div>
+    <div class="signal-indicators">
+      <div class="sig-ind">
+        <span>RSI (14j)</span>
+        <strong style="color:${sig.rsi < 30 ? 'var(--green)' : sig.rsi > 70 ? 'var(--red)' : 'var(--muted)'}">${sig.rsi}</strong>
+      </div>
+      <div class="sig-ind">
+        <span>MACD</span>
+        <strong style="color:${macdCol}">${macdIcon}</strong>
+      </div>
+      <div class="sig-ind">
+        <span>Perf. 30j</span>
+        <strong style="color:${sig.perf30 >= 0 ? 'var(--green)' : 'var(--red)'}">${sig.perf30 >= 0 ? '+' : ''}${sig.perf30}%</strong>
+      </div>
+    </div>
+    <div class="signal-reasons">
+      ${sig.reasons.map(r => `<div class="sig-reason">\u2022 ${r}</div>`).join('')}
+    </div>`;
 
   document.getElementById('tradeQty').value = 1;
   setTradeMode('buy');
