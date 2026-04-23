@@ -35,7 +35,6 @@ const EVENTS = [
   // MAI 2026
   { id:'forza6',      type:'release',  icon:'🏎️', title:'Forza Horizon 6 — Xbox & PC',             date:'2026-05-19', stockIds:['msft'],        impact:'pos', desc:'Sixième opus de la série open-world racing d\'Xbox, day one Game Pass' },
   { id:'007fl',       type:'release',  icon:'🕵️', title:'007 First Light — Xbox & PS5',            date:'2026-05-27', stockIds:['msft'],        impact:'pos', desc:'Nouveau jeu James Bond développé par IO Interactive' },
-  { id:'ubi-shadow',  type:'release',  icon:'🗡️', title:'AC Shadows — DLC "Clans en Guerre"',      date:'2026-05-20', stockIds:['ubisoft'],     impact:'pos', desc:'Contenu additionnel majeur d\'Assassin\'s Creed Shadows' },
 
   // JUIN 2026
   { id:'sgf26',       type:'event',    icon:'🎪', title:'Summer Game Fest 2026 — Los Angeles',     date:'2026-06-05', stockIds:[],             impact:'pos', desc:'Grande présentation gaming depuis le Dolby Theatre — annonces mondiales' },
