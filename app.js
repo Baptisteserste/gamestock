@@ -288,9 +288,10 @@ function showPage(name) {
 let screenerTab = 'buy';
 
 const BROKERS = {
-  traderepublic: { name: 'Trade Republic', feeLabel: '1\u20ac fixe',         fee: () => 1.0 },
-  degiro:        { name: 'DEGIRO',         feeLabel: '0.50\u20ac + 0.004%',   fee: (t) => +(0.5 + t * 0.00004).toFixed(2) },
-  bolero:        { name: 'Bolero (KBC)',   feeLabel: '7.50\u20ac fixe',        fee: () => 7.5 },
+  revolut:       { name: 'Revolut',        feeLabel: '0\u20ac (Premium) / 1\u20ac (Standard)', fee: () => 0 },
+  traderepublic: { name: 'Trade Republic', feeLabel: '1\u20ac fixe',                        fee: () => 1.0 },
+  degiro:        { name: 'DEGIRO',         feeLabel: '0.50\u20ac + 0.004%',                 fee: (t) => +(0.5 + t * 0.00004).toFixed(2) },
+  bolero:        { name: 'Bolero (KBC)',   feeLabel: '7.50\u20ac fixe',                     fee: () => 7.5 },
 };
 const TOB_RATE = 0.0035; // 0.35% taxe boursière belge
 

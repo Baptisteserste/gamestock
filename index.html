@@ -373,6 +373,117 @@
       </div>
     </section>
 
+    <!-- ===================== PAGE CONSEILS ===================== -->
+    <section class="page" id="page-conseils">
+      <div class="page-header">
+        <h1>Conseils <span class="gradient-text">d'Investissement</span></h1>
+        <p class="subtitle">Signaux RSI &middot; Momentum &middot; Catalyseurs &middot; Allocation optimale</p>
+      </div>
+
+      <!-- Top 3 picks -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">&#127942; Meilleures opportunit&eacute;s du moment</h2>
+        <div class="top-picks-grid" id="topPicksGrid"></div>
+      </div>
+
+      <!-- Screener -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">&#128203; Screener d'actions</h2>
+        <div class="screener-tabs">
+          <button class="stab active" data-tab="buy"      onclick="setScreenerTab('buy')"     >&#129001; Acheter</button>
+          <button class="stab"        data-tab="watch"    onclick="setScreenerTab('watch')"   >&#129000; Surveiller</button>
+          <button class="stab"        data-tab="catalyst" onclick="setScreenerTab('catalyst')">&#128197; Catalyseurs</button>
+          <button class="stab"        data-tab="avoid"    onclick="setScreenerTab('avoid')"   >&#128308; &Eacute;viter</button>
+        </div>
+        <div id="screenerContent"></div>
+      </div>
+
+      <!-- Calculateur d'allocation -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">&#128176; Calculateur d'allocation</h2>
+        <p class="conseils-sub">Indique ton budget et ton courtier &mdash; l'app calcule exactement quoi acheter, avec frais et TOB belge inclus.</p>
+        <div class="alloc-form">
+          <div class="alloc-field">
+            <label>Budget disponible</label>
+            <div class="alloc-input-wrap">
+              <input type="number" id="allocBudget" value="500" min="10" step="50" />
+              <span class="alloc-unit">&euro;</span>
+            </div>
+          </div>
+          <div class="alloc-field">
+            <label>Courtier</label>
+            <select id="allocCourtier">
+              <option value="revolut">Revolut &mdash; 0&euro; (Premium) / 1&euro; (Standard)</option>
+              <option value="traderepublic">Trade Republic &mdash; 1&euro; / ordre</option>
+              <option value="degiro">DEGIRO &mdash; 0.50&euro; + 0.004%</option>
+              <option value="bolero">Bolero (KBC) &mdash; 7.50&euro; / ordre</option>
+            </select>
+          </div>
+          <button class="btn-simulate" onclick="calcAllocation()">Calculer l'allocation &rarr;</button>
+        </div>
+        <div id="allocResult"></div>
+      </div>
+
+      <!-- Guide courtiers belges -->
+      <div class="conseils-block">
+        <h2 class="conseils-title">&#127974; Guide courtiers &mdash; Belgique</h2>
+        <div class="broker-cards">
+          <div class="broker-card best">
+            <div class="broker-recommend">&#9989; Tu utilises d&eacute;j&agrave; Revolut !</div>
+            <div class="broker-name">Revolut</div>
+            <div class="broker-fee">0&euro; &mdash; 1&euro; / ordre selon abonnement</div>
+            <ul class="broker-list">
+              <li>Standard : 1 ordre gratuit/mois, puis ~1&euro;</li>
+              <li>Plus/Premium : ordres illimit&eacute;s gratuits</li>
+              <li>Interface mobile tr&egrave;s intuitive</li>
+              <li>Actions US, UK, EU disponibles</li>
+              <li>Pas de TOB automatique (tu dois la d&eacute;clarer toi-m&ecirc;me)</li>
+            </ul>
+          </div>
+          <div class="broker-card">
+            <div class="broker-name">Trade Republic</div>
+            <div class="broker-fee">1&euro; fixe / ordre</div>
+            <ul class="broker-list">
+              <li>Concurrent direct de Revolut</li>
+              <li>Compte &eacute;pargne r&eacute;mun&eacute;r&eacute; inclus</li>
+              <li>Plan d'&eacute;pargne automatique</li>
+              <li>Id&eacute;al si tu n'as pas Revolut Premium</li>
+            </ul>
+          </div>
+          <div class="broker-card">
+            <div class="broker-name">DEGIRO</div>
+            <div class="broker-fee">0.50&euro; + 0.004%</div>
+            <ul class="broker-list">
+              <li>Meilleur pour &gt;200&euro; / ordre</li>
+              <li>Large s&eacute;lection mondiale</li>
+              <li>Interface web compl&egrave;te</li>
+              <li>Reporting fiscal automatique</li>
+            </ul>
+          </div>
+        </div>
+        <div class="tax-box">
+          <div class="tax-title">&#128203; Fiscalit&eacute; belge &mdash; Ce que tu dois savoir avec Revolut</div>
+          <div class="tax-grid">
+            <div class="tax-item">
+              <span class="tax-label">TOB (Taxe Op&eacute;rations Boursi&egrave;res)</span>
+              <span class="tax-val">0.35% par ordre &mdash; max 1&thinsp;600&euro; &bull; <strong>Revolut ne la retient pas automatiquement !</strong> Tu dois la d&eacute;clarer annuellement.</span>
+            </div>
+            <div class="tax-item">
+              <span class="tax-label">Pr&eacute;compte mobilier (dividendes)</span>
+              <span class="tax-val">30% retenu &agrave; la source &mdash; g&eacute;r&eacute; automatiquement par Revolut</span>
+            </div>
+            <div class="tax-item good">
+              <span class="tax-label">Plus-values (revente avec gain)</span>
+              <span class="tax-val">&#9989; NON tax&eacute;es en Belgique !</span>
+            </div>
+            <div class="tax-item">
+              <span class="tax-label">D&eacute;claration TOB sur Revolut</span>
+              <span class="tax-val">Via MyMinfin.be ou un comptable &mdash; annuellement</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="page" id="page-news">
       <div class="page-header">
